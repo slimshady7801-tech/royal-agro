@@ -47,17 +47,12 @@ const XLSX = window.XLSX;
 const Papa = window.Papa;
 function _kebab(n) { return n.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z])([A-Z][a-z])/g, "$1-$2").replace(/([a-zA-Z])([0-9])/g, "$1-$2").toLowerCase(); }
 function _lu(name) {
+    var key = name === "SettingsIcon" ? "settings" : _kebab(name);
     return function (props) {
         props = props || {};
-        var lib = window.lucide && window.lucide.icons;
-        var key = name === "SettingsIcon" ? "settings" : _kebab(name);
-        var def = lib && (lib[key] || lib[name]);
-        if (!def)
-            return null;
         var size = props.size || 24;
-        var common = { xmlns: "http://www.w3.org/2000/svg", width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", className: props.className };
-        var children = (def[1] || []).map(function (el, i) { return React.createElement(el[0], Object.assign({ key: i }, el[1])); });
-        return React.createElement("svg", common, children);
+        var style = { width: size, height: size, display: "inline-block", verticalAlign: "middle", flexShrink: 0 };
+        return React.createElement("i", { "data-lucide": key, className: props.className, style: style });
     };
 }
 const Plus = _lu("Plus");
@@ -532,6 +527,8 @@ function App() {
     const [ocNew, setOcNew] = useState({ name: "", area: "", phone: "", rep: "" });
     const [ocPayAmt, setOcPayAmt] = useState("");
     const [ocPayMethod, setOcPayMethod] = useState("Cash");
+    useEffect(() => { if (window.lucide && window.lucide.createIcons)
+        window.lucide.createIcons(); });
     useEffect(() => {
         (async () => {
             const d = await dbLoad();
@@ -1809,6 +1806,7 @@ function App() {
                     React.createElement("div", { className: "h-8" }))));
         })()));
 }
+
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
 
 } catch (e) { if (window.__appError) window.__appError(e && (e.stack || e.message) || e); }
