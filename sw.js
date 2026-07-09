@@ -1,4 +1,4 @@
-const CACHE = "royal-agro-v2";
+const CACHE = "royal-agro-v4";
 const ASSETS = [
   "./", "./index.html", "./manifest.webmanifest",
   "https://cdn.tailwindcss.com",
@@ -18,7 +18,6 @@ self.addEventListener("activate", function (e) {
     return Promise.all(ks.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
   }).then(function () { return self.clients.claim(); }));
 });
-// Network-first: always try the network when online (avoids stale/broken cache), fall back to cache offline.
 self.addEventListener("fetch", function (e) {
   if (e.request.method !== "GET") return;
   e.respondWith(

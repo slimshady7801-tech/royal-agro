@@ -17,7 +17,7 @@ window.__appError = function (msg) {
   r.innerHTML = '<div style="padding:20px;color:#334155"><h3 style="color:#b91c1c;margin:0 0 8px">The app could not start</h3><pre style="white-space:pre-wrap;background:#f1f5f9;padding:12px;border-radius:8px;color:#b91c1c;font:12px monospace">' + String(msg).replace(/[<]/g, "&lt;") + '</pre><p style="color:#64748b">If your phone is offline, connect to the internet for the very first open. Otherwise, copy this message and send it to get it fixed.</p></div>';
 };
 window.addEventListener("error", function (e) {
-  if (e && e.target && e.target.tagName) return;               // ignore a library file failing to load
+  if (e && e.target && e.target.tagName) return;
   var r = document.getElementById("root"); if (r && r.hasChildNodes()) return;
   window.__appError((e && e.message) || e);
 });
@@ -43,28 +43,51 @@ setTimeout(function () {
 try {
 "use strict";
 const { useState, useEffect, useMemo } = React;
-function _kebab(n) { return n.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z])([A-Z][a-z])/g, "$1-$2").toLowerCase(); }
+const XLSX = window.XLSX;
+const Papa = window.Papa;
+function _kebab(n) { return n.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z])([A-Z][a-z])/g, "$1-$2").replace(/([a-zA-Z])([0-9])/g, "$1-$2").toLowerCase(); }
 function _lu(name) {
     return function (props) {
         props = props || {};
+        var lib = window.lucide && window.lucide.icons;
+        var key = name === "SettingsIcon" ? "settings" : _kebab(name);
+        var def = lib && (lib[key] || lib[name]);
+        if (!def)
+            return null;
         var size = props.size || 24;
-        var L = window.lucide || {};
-        var node = (L.icons && (L.icons[name] || L.icons[_kebab(name)])) || L[name];
-        if (Array.isArray(node)) {
-            var kids = node.map(function (c, i) { return React.createElement(c[0], Object.assign({ key: i }, c[1])); });
-            var rest = {};
-            for (var k in props) {
-                if (k !== "size")
-                    rest[k] = props[k];
-            }
-            return React.createElement("svg", Object.assign({ xmlns: "http://www.w3.org/2000/svg", width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }, rest), kids);
-        }
-        return null;
+        var common = { xmlns: "http://www.w3.org/2000/svg", width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", className: props.className };
+        var children = (def[1] || []).map(function (el, i) { return React.createElement(el[0], Object.assign({ key: i }, el[1])); });
+        return React.createElement("svg", common, children);
     };
 }
-const Plus = _lu("Plus"), Trash2 = _lu("Trash2"), Users = _lu("Users"), ShoppingCart = _lu("ShoppingCart"), Wallet = _lu("Wallet"), Search = _lu("Search"), X = _lu("X"), Download = _lu("Download"), ArrowLeft = _lu("ArrowLeft"), Building2 = _lu("Building2"), Receipt = _lu("Receipt"), Minus = _lu("Minus"), Upload = _lu("Upload"), ChevronDown = _lu("ChevronDown"), ChevronUp = _lu("ChevronUp"), SettingsIcon = _lu("Settings"), LayoutDashboard = _lu("LayoutDashboard"), Boxes = _lu("Boxes"), AlertTriangle = _lu("AlertTriangle"), Pencil = _lu("Pencil"), MapPin = _lu("MapPin"), User = _lu("User"), RotateCcw = _lu("RotateCcw"), Calculator = _lu("Calculator"), ClipboardList = _lu("ClipboardList"), TrendingUp = _lu("TrendingUp");
-const XLSX = window.XLSX;
-const Papa = window.Papa;
+const Plus = _lu("Plus");
+const Trash2 = _lu("Trash2");
+const Users = _lu("Users");
+const ShoppingCart = _lu("ShoppingCart");
+const Wallet = _lu("Wallet");
+const Search = _lu("Search");
+const X = _lu("X");
+const Download = _lu("Download");
+const ArrowLeft = _lu("ArrowLeft");
+const Building2 = _lu("Building2");
+const Receipt = _lu("Receipt");
+const Minus = _lu("Minus");
+const Upload = _lu("Upload");
+const ChevronDown = _lu("ChevronDown");
+const ChevronUp = _lu("ChevronUp");
+const SettingsIcon = _lu("SettingsIcon");
+const LayoutDashboard = _lu("LayoutDashboard");
+const Boxes = _lu("Boxes");
+const AlertTriangle = _lu("AlertTriangle");
+const Pencil = _lu("Pencil");
+const MapPin = _lu("MapPin");
+const User = _lu("User");
+const RotateCcw = _lu("RotateCcw");
+const Calculator = _lu("Calculator");
+const ClipboardList = _lu("ClipboardList");
+const TrendingUp = _lu("TrendingUp");
+const Share2 = _lu("Share2");
+const Calendar = _lu("Calendar");
 // ----------------------------- Catalog ---------------------------------
 const DISCOUNT = 0.35;
 const packSize = (pk) => {
@@ -220,6 +243,8 @@ const CATALOG = RAW.map(([name, cat, pack, rate], i) => ({
 const CATS = ["All", "Fungicide", "Herbicide", "Insecticide", "Seed", "Nutrient", "Adler"];
 const PACK_SIZE = {};
 CATALOG.forEach((p) => { PACK_SIZE[p.id] = packSize(p.pack); });
+const CAT_BY_ID = {};
+CATALOG.forEach((p) => { CAT_BY_ID[p.id] = p; });
 // Seed data extracted from ROYAL cost sheet (Apr 2026) and stock report (06-Jul-2026)
 // COST_SEED[id] = [costPerLtrKg, packingCost]; cost-with-packing = cpu*packSize + packing
 const COST_SEED = { "prod-0": [1410, 65], "prod-1": [1410, 250], "prod-2": [2225, 85], "prod-3": [1400, 55], "prod-4": [1425, 60], "prod-5": [1425, 75], "prod-6": [1425, 250], "prod-7": [1350, 90], "prod-8": [1450, 55], "prod-9": [2200, 70], "prod-10": [2200, 250], "prod-11": [1975, 85], "prod-12": [430, 75], "prod-13": [430, 95], "prod-14": [430, 250], "prod-15": [1300, 55], "prod-16": [1300, 65], "prod-17": [1300, 250], "prod-18": [850, 55], "prod-19": [775, 85], "prod-20": [775, 100], "prod-21": [550, 90], "prod-22": [750, 100], "prod-23": [975, 65], "prod-24": [975, 75], "prod-25": [1425, 90], "prod-26": [835, 90], "prod-27": [835, 100], "prod-28": [920, 100], "prod-29": [600, 100], "prod-30": [990, 100], "prod-32": [735, 100], "prod-33": [950, 100], "prod-34": [935, 100], "prod-35": [405, 30], "prod-39": [3025, 150], "prod-40": [1000, 100], "prod-42": [750, 90], "prod-43": [1400, 55], "prod-44": [825, 60], "prod-45": [1115, 90], "prod-46": [1115, 100], "prod-47": [1750, 55], "prod-48": [775, 75], "prod-49": [775, 250], "prod-50": [735, 90], "prod-51": [735, 100], "prod-52": [1115, 90], "prod-53": [1115, 100], "prod-54": [790, 90], "prod-55": [790, 100], "prod-56": [1550, 90], "prod-57": [1550, 100], "prod-58": [1050, 90], "prod-59": [1450, 55], "prod-60": [6250, 60], "prod-61": [1000, 90], "prod-62": [1000, 100], "prod-63": [950, 90], "prod-64": [1050, 60], "prod-65": [3100, 55], "prod-66": [580, 90], "prod-67": [580, 100], "prod-68": [1300, 85], "prod-69": [1300, 90], "prod-70": [4000, 55], "prod-71": [825, 90], "prod-72": [825, 100], "prod-73": [395, 10], "prod-74": [925, 90], "prod-75": [1075, 100], "prod-76": [2350, 110], "prod-77": [925, 55], "prod-78": [925, 90], "prod-79": [925, 90], "prod-80": [3895, 55], "prod-81": [615, 90], "prod-82": [615, 100], "prod-83": [4600, 55], "prod-84": [3150, 95], "prod-85": [37, 250], "prod-86": [120, 125], "prod-87": [120, 200], "prod-88": [41, 250], "prod-89": [30, 110], "prod-90": [30, 1250], "prod-91": [30, 4250], "prod-92": [380, 90], "prod-93": [380, 1250], "prod-94": [380, 4250], "prod-95": [115, 115], "prod-96": [115, 250], "prod-97": [115, 1250], "prod-98": [115, 4250], "prod-99": [380, 95], "prod-100": [400, 100], "prod-101": [225, 0], "prod-102": [225, 1250], "prod-103": [225, 4250], "prod-104": [145, 0], "prod-105": [280, 240], "prod-106": [280, 525], "prod-107": [280, 1250], "prod-108": [280, 4250], "prod-109": [100, 55], "prod-110": [300, 90], "prod-111": [300, 1250], "prod-112": [300, 4250], "prod-113": [250, 90], "prod-114": [250, 1250], "prod-115": [250, 4250], "prod-116": [145, 0], "prod-117": [145, 1250], "prod-118": [145, 4250], "prod-119": [300, 0], "prod-120": [395, 90], "prod-121": [395, 100], "prod-122": [395, 0], "prod-123": [2350, 110], "prod-124": [5400, 95], "prod-126": [405, 30], "prod-127": [405, 30], "prod-129": [4500, 95] };
@@ -261,39 +286,70 @@ function matchCatId(name, pack) {
     }
     return best && bestScore >= 0.6 ? best.id : null;
 }
-// Parse a pasted stock-report (text copied from the ROYAL stock PDF).
-// Row shape: NAME ... <packToken> <Balance> <...>. Balance = first number after pack.
+// Parse a pasted stock report. When copied from a PDF, columns often glue together
+// (e.g. "1,457658" = balance 1,457 + next column 658). We reconstruct the true closing
+// balance from the accounting identity (Balance = Opening + Purchase + Production + Transfer + Sale)
+// and reject any row that doesn't reconcile, so a bad paste never produces wrong stock.
 function parseStockText(text) {
-    const packre = /^\d+(?:\.\d+)?(kg|gm|ml|ltr|nos)$/i;
-    const map = {}, unmatched = [];
-    let count = 0;
-    for (const ln of String(text).split(/\r?\n/)) {
-        const toks = ln.trim().split(/\s+/);
-        if (toks.length < 3)
-            continue;
-        let pi = -1;
-        for (let i = 0; i < toks.length; i++) {
-            if (packre.test(toks[i])) {
-                pi = i;
-                break;
-            }
+    const PACK = /(\d+(?:\.\d+)?)(kg|gm|ml|ltr|nos)\b/ig;
+    const SKIP = /MULTAN|Product Name|Page \d|Pack Bal|^Adj\.|FERTILIZER|FUNJICIDE|FUNGICIDE|HERBICIDE|INSECTICIDE|GRANULE|HOUSE HOLD|MICRO NUTR|OTHERS|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday/i;
+    function balOf(toks, nums) {
+        if (nums.length >= 6) {
+            const b = nums[0];
+            return b === nums[1] + nums[2] + nums[3] + nums[4] + nums[5] ? b : null;
         }
-        if (pi <= 0)
+        if (nums.length === 5) {
+            const S = nums[1] + nums[2] + nums[3] + nums[4];
+            const g = String(toks[0]).replace(/,/g, "").replace(/^-/, "");
+            for (let k = 1; k < g.length; k++) {
+                const b = parseInt(g.slice(0, k), 10), o = parseInt(g.slice(k), 10);
+                if (!isNaN(b) && !isNaN(o) && o >= 0 && b >= 0 && b === o + S)
+                    return b;
+            }
+            if (nums[0] === nums[1] + nums[2] + nums[3] + nums[4])
+                return nums[0];
+            return null;
+        }
+        if (nums.length === 4)
+            return nums[0] === nums[1] + nums[2] + nums[3] ? nums[0] : null;
+        return null;
+    }
+    const map = {}, unmatched = [];
+    let lines = 0, skipped = 0;
+    for (const raw of String(text).split(/\r?\n/)) {
+        if (SKIP.test(raw))
             continue;
-        const bal = parseFloat(String(toks[pi + 1] || "").replace(/,/g, ""));
-        if (isNaN(bal))
+        PACK.lastIndex = 0;
+        let m, last = null;
+        while ((m = PACK.exec(raw)))
+            last = m;
+        if (!last)
             continue;
-        const name = toks.slice(0, pi).join(" ");
-        const id = matchCatId(name, toks[pi]);
-        count++;
+        const name = raw.slice(0, last.index).replace(/^\s*(-?[\d,]+\s+)+/, "").trim();
+        if (!name)
+            continue;
+        const cluster = raw.slice(last.index + last[0].length);
+        const toks = cluster.match(/-?[\d,]+/g);
+        if (!toks || !toks.length)
+            continue;
+        const nums = toks.map((t) => parseInt(t.replace(/,/g, ""), 10));
+        if (nums.some(isNaN))
+            continue;
+        const bal = balOf(toks, nums);
+        lines++;
+        if (bal == null) {
+            skipped++;
+            continue;
+        }
+        const id = matchCatId(name, last[0]);
         if (id)
             map[id] = (map[id] || 0) + bal;
         else
-            unmatched.push(name + " " + toks[pi] + "=" + bal);
+            unmatched.push(name + " " + last[0]);
     }
     const rounded = {};
     Object.keys(map).forEach((k) => { rounded[k] = Math.round(map[k]); });
-    return { map: rounded, matched: Object.keys(rounded).length, unmatched, lines: count };
+    return { map: rounded, matched: Object.keys(rounded).length, unmatched, lines, skipped };
 }
 // Column-detecting importer for CSV/XLSX stock files.
 function buildImport(rows) {
@@ -385,6 +441,18 @@ const prettyDate = (iso) => {
     const mm = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][+m - 1];
     return (+d) + " " + mm + " " + y;
 };
+// Positive = iso is in the past (overdue by N days), 0 = today, negative = upcoming
+const daysBetween = (iso) => Math.round((new Date(today() + "T00:00:00") - new Date(iso + "T00:00:00")) / 86400000);
+const followUpStatus = (d) => {
+    if (!d.followUp)
+        return null;
+    const diff = daysBetween(d.followUp);
+    if (diff > 0)
+        return { label: diff === 1 ? "1 day overdue" : diff + " days overdue", tone: "red" };
+    if (diff === 0)
+        return { label: "Follow up today", tone: "amber" };
+    return { label: "Follow up " + prettyDate(d.followUp), tone: "slate" };
+};
 const KEY = "royal-agro-ledger-v2";
 const hasStore = true;
 async function dbLoad() { try {
@@ -410,9 +478,10 @@ function downloadFile(filename, text, mime) {
 const csvCell = (v) => { const s = String(v == null ? "" : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
 const SEED_META = { updated: SEED_DATE, matched: Object.keys(STOCK_SEED).length, unmatched: [], seeded: true };
 const DEFAULTS = {
-    dealers: [], txns: [], stock: STOCK_SEED, costing: COST_SEED,
+    dealers: [], txns: [], stock: STOCK_SEED, costing: COST_SEED, names: {},
     stockMeta: SEED_META, settings: { lowStock: 10 },
 };
+let flashTimeoutId = null; // module-scope: survives re-renders without needing useRef
 // Products grouped for the costing editor (cost/Ltr·Kg is shared across a product's packs)
 const COST_GROUPS = (() => {
     const g = {};
@@ -428,6 +497,8 @@ function App() {
     const [detailId, setDetailId] = useState(null);
     const [tab, setTab] = useState("ledger");
     const [msg, setMsg] = useState("");
+    const [msgUndo, setMsgUndo] = useState(null); // undo callback for the current toast, or null
+    const [shareModal, setShareModal] = useState(null); // { title, text } | null
     const [showSettings, setShowSettings] = useState(false);
     const [showCosting, setShowCosting] = useState(false);
     const [costSearch, setCostSearch] = useState("");
@@ -436,7 +507,7 @@ function App() {
     const [fRep, setFRep] = useState("All");
     const [formOpen, setFormOpen] = useState(false);
     const [editId, setEditId] = useState(null);
-    const [f, setF] = useState({ name: "", phone: "", area: "", rep: "", remarks: "" });
+    const [f, setF] = useState({ name: "", phone: "", area: "", rep: "", remarks: "", followUp: "" });
     const [cart, setCart] = useState([]);
     const [oDate, setODate] = useState(today());
     const [oNote, setONote] = useState("");
@@ -456,6 +527,11 @@ function App() {
     const [payEdit, setPayEdit] = useState(null); // payment being edited
     const [repView, setRepView] = useState(null); // salesperson name
     const [todayDate, setTodayDate] = useState(today());
+    const [prodView, setProdView] = useState(null); // catId being viewed/edited
+    const [ocDealerId, setOcDealerId] = useState(""); // "" | dealerId | "__new__"
+    const [ocNew, setOcNew] = useState({ name: "", area: "", phone: "", rep: "" });
+    const [ocPayAmt, setOcPayAmt] = useState("");
+    const [ocPayMethod, setOcPayMethod] = useState("Cash");
     useEffect(() => {
         (async () => {
             const d = await dbLoad();
@@ -463,6 +539,7 @@ function App() {
                 const merged = { ...DEFAULTS, ...d };
                 merged.settings = { ...DEFAULTS.settings, ...(d.settings || {}) };
                 merged.costing = { ...COST_SEED, ...(d.costing || {}) };
+                merged.names = { ...(d.names || {}) };
                 if (!d.stockMeta) {
                     merged.stock = STOCK_SEED;
                     merged.stockMeta = SEED_META;
@@ -472,8 +549,20 @@ function App() {
             setLoaded(true);
         })();
     }, []);
-    const persist = (next) => { setData(next); dbSave(next); };
-    const flash = (t) => { setMsg(t); setTimeout(() => setMsg(""), 2800); };
+    const persist = (next) => {
+        setData((prev) => {
+            const resolved = typeof next === "function" ? next(prev) : next;
+            dbSave(resolved);
+            return resolved;
+        });
+    };
+    const flash = (t, undo) => {
+        setMsg(t);
+        setMsgUndo(() => undo || null);
+        if (flashTimeoutId)
+            clearTimeout(flashTimeoutId);
+        flashTimeoutId = setTimeout(() => { setMsg(""); setMsgUndo(null); }, undo ? 5500 : 2800);
+    };
     const threshold = (_b = (_a = data.settings) === null || _a === void 0 ? void 0 : _a.lowStock) !== null && _b !== void 0 ? _b : 10;
     // hidden cost-with-packing for a SKU (used only for flagging + costing editor)
     const costWith = (id) => {
@@ -487,15 +576,79 @@ function App() {
     };
     // profit on an order = sum over costed items of (rate - cost-with-packing) * qty
     const orderProfit = (t) => t.items.reduce((s, i) => { const c = costWith(i.catId); return c != null ? s + (i.rate - c) * i.qty : s; }, 0);
+    // display name for a product (custom override or catalog default)
+    const pname = (id) => (data.names && data.names[id]) || (CAT_BY_ID[id] ? CAT_BY_ID[id].name : "");
+    const setName = (id, val) => { const n = { ...(data.names || {}) }; if (val.trim())
+        n[id] = val;
+    else
+        delete n[id]; persist({ ...data, names: n }); };
+    const setStockVal = (id, val) => { const s = { ...data.stock }; if (val === "")
+        delete s[id];
+    else
+        s[id] = Math.max(0, Math.round(parseNum(val) || 0)); persist({ ...data, stock: s }); };
+    const setCostField = (id, idx, val) => {
+        const cur = data.costing[id] ? [data.costing[id][0], data.costing[id][1]] : [null, 0];
+        cur[idx] = val === "" ? (idx === 0 ? null : 0) : parseNum(val);
+        persist({ ...data, costing: { ...data.costing, [id]: cur } });
+    };
+    const setGroupCpu = (id, val) => {
+        const nm = CAT_BY_ID[id] ? CAT_BY_ID[id].name : null;
+        if (!nm)
+            return;
+        const v = val === "" ? null : parseNum(val);
+        const next = { ...data.costing };
+        CATALOG.forEach((p) => { if (p.name === nm) {
+            const cur = next[p.id] || [null, 0];
+            next[p.id] = [v, cur[1] || 0];
+        } });
+        persist({ ...data, costing: next });
+    };
+    const nextOrderNo = () => {
+        const ns = data.txns.filter((t) => t.type === "order" && t.orderNo).map((t) => parseInt(String(t.orderNo).replace(/\D/g, "")) || 0);
+        return (ns.length ? Math.max(...ns) : 1000) + 1;
+    };
+    const resetComposer = () => { setCart([]); setOcDealerId(""); setOcNew({ name: "", area: "", phone: "", rep: "" }); setOcPayAmt(""); setONote(""); setODate(today()); setPSearch(""); setEditOrderId(null); };
+    const saveComposerOrder = () => {
+        if (!cart.length) {
+            flash("Add at least one product to the order");
+            return;
+        }
+        let dealerId = ocDealerId;
+        let next = { ...data };
+        if (ocDealerId === "__new__") {
+            const name = ocNew.name.trim();
+            if (!name) {
+                flash("Enter the new dealer's name");
+                return;
+            }
+            dealerId = uid();
+            next = { ...next, dealers: [...next.dealers, { id: dealerId, name, phone: ocNew.phone.trim(), area: ocNew.area.trim(), rep: ocNew.rep.trim(), remarks: "", created: Date.now() }] };
+        }
+        else if (!dealerId) {
+            flash("Choose a dealer for this order");
+            return;
+        }
+        const items = cart.map((c) => { const cost = costWith(c.id); return { catId: c.id, name: c.name, pack: c.pack, qty: c.qty, rate: c.rate, line: c.rate * c.qty, belowCost: cost != null && c.rate < cost }; });
+        const total = items.reduce((s, i) => s + i.line, 0);
+        const orderNo = nextOrderNo();
+        const txns = [...next.txns, { id: uid(), dealerId, type: "order", orderNo, date: oDate || today(), note: oNote.trim(), items, total, created: Date.now() }];
+        const amt = parseFloat(ocPayAmt);
+        if (amt && amt > 0)
+            txns.push({ id: uid(), dealerId, type: "payment", date: oDate || today(), method: ocPayMethod, note: "Against order #" + orderNo, amount: amt, created: Date.now() + 1 });
+        persist({ ...next, txns });
+        resetComposer();
+        flash("Order #" + orderNo + " saved");
+        setDetailId(dealerId);
+    };
     // ---- dealers ----
     const openForm = (dealer) => {
         if (dealer) {
             setEditId(dealer.id);
-            setF({ name: dealer.name, phone: dealer.phone || "", area: dealer.area || "", rep: dealer.rep || "", remarks: dealer.remarks || "" });
+            setF({ name: dealer.name, phone: dealer.phone || "", area: dealer.area || "", rep: dealer.rep || "", remarks: dealer.remarks || "", followUp: dealer.followUp || "" });
         }
         else {
             setEditId(null);
-            setF({ name: "", phone: "", area: "", rep: "", remarks: "" });
+            setF({ name: "", phone: "", area: "", rep: "", remarks: "", followUp: "" });
         }
         setFormOpen(true);
     };
@@ -503,7 +656,7 @@ function App() {
         const name = f.name.trim();
         if (!name)
             return;
-        const rec = { name, phone: f.phone.trim(), area: f.area.trim(), rep: f.rep.trim(), remarks: f.remarks.trim() };
+        const rec = { name, phone: f.phone.trim(), area: f.area.trim(), rep: f.rep.trim(), remarks: f.remarks.trim(), followUp: f.followUp || "" };
         if (editId)
             persist({ ...data, dealers: data.dealers.map((d) => (d.id === editId ? { ...d, ...rec } : d)) });
         else
@@ -568,7 +721,15 @@ function App() {
         setTab("ledger");
         flash("Payment recorded");
     };
-    const removeTxn = (id) => setConfirmAsk({ msg: "Delete this entry? This cannot be undone.", action: () => persist({ ...data, txns: data.txns.filter((t) => t.id !== id) }) });
+    const removeTxn = (id) => {
+        const t = data.txns.find((x) => x.id === id);
+        if (!t)
+            return;
+        persist((prev) => ({ ...prev, txns: prev.txns.filter((x) => x.id !== id) }));
+        flash((t.type === "order" ? "Order" : "Payment") + " deleted", () => {
+            persist((prev) => (prev.txns.some((x) => x.id === t.id) ? prev : { ...prev, txns: [...prev.txns, t] }));
+        });
+    };
     const balanceOf = (id) => data.txns.filter((t) => t.dealerId === id).reduce((b, t) => b + (t.type === "order" ? t.total : -t.amount), 0);
     const ledgerFor = (id) => {
         const list = data.txns.filter((t) => t.dealerId === id).slice()
@@ -647,9 +808,9 @@ function App() {
         .map((p) => ({ ...p, qty: data.stock[p.id] })).sort((a, b) => a.qty - b.qty), [data.stock, threshold]);
     const stockList = useMemo(() => {
         const q = stockSearch.trim().toLowerCase();
-        return CATALOG.filter((p) => data.stock[p.id] != null && (!q || p.name.toLowerCase().includes(q) || p.pack.toLowerCase().includes(q)))
+        return CATALOG.filter((p) => !q || pname(p.id).toLowerCase().includes(q) || p.pack.toLowerCase().includes(q))
             .map((p) => ({ ...p, qty: data.stock[p.id] }));
-    }, [data.stock, stockSearch]);
+    }, [data.stock, data.names, stockSearch]);
     const costGroupsFiltered = useMemo(() => {
         const q = costSearch.trim().toLowerCase();
         return q ? COST_GROUPS.filter((g) => g.name.toLowerCase().includes(q)) : COST_GROUPS;
@@ -669,7 +830,9 @@ function App() {
                 outstanding += b;
                 byArea[ak].out += b;
                 byRep[rk].out += b;
-                debtors.push({ name: d.name, area: d.area, bal: b, id: d.id });
+                const pays = data.txns.filter((t) => t.dealerId === d.id && t.type === "payment");
+                const lastPay = pays.length ? pays.reduce((mx, t) => (t.date > mx ? t.date : mx), pays[0].date) : null;
+                debtors.push({ name: d.name, area: d.area, bal: b, id: d.id, lastPay });
             }
             else if (b < 0)
                 advance += -b;
@@ -678,6 +841,9 @@ function App() {
         const sortObj = (o) => Object.entries(o).sort((a, b) => b[1].out - a[1].out);
         return { outstanding, advance, byArea: sortObj(byArea), byRep: sortObj(byRep), debtors: debtors.sort((a, b) => b.bal - a.bal).slice(0, 5), belowCostOrders };
     }, [data]);
+    const followUps = useMemo(() => data.dealers.map((d) => ({ d, diff: d.followUp ? daysBetween(d.followUp) : null }))
+        .filter((x) => x.diff != null && x.diff >= 0)
+        .sort((a, b) => b.diff - a.diff), [data.dealers]);
     const repInfo = useMemo(() => {
         if (!repView)
             return null;
@@ -739,6 +905,43 @@ function App() {
         downloadFile("Statement-" + d.name.replace(/[^a-z0-9]+/gi, "-") + "-" + today() + ".csv", rows.map((r) => r.map(csvCell).join(",")).join("\n"));
         flash("Statement exported");
     };
+    const openShare = (title, text) => setShareModal({ title, text });
+    const doNativeShare = async () => {
+        if (!shareModal)
+            return;
+        if (navigator.share) {
+            try {
+                await navigator.share({ title: shareModal.title, text: shareModal.text });
+                return;
+            }
+            catch (e) {
+                if (e && e.name === "AbortError")
+                    return;
+            }
+        }
+        doCopyShare();
+    };
+    const doCopyShare = async () => {
+        if (!shareModal)
+            return;
+        try {
+            await navigator.clipboard.writeText(shareModal.text);
+            flash("Copied — paste it in WhatsApp or SMS");
+        }
+        catch {
+            flash("Couldn't copy automatically — select the text below and copy it");
+        }
+    };
+    const shareStatement = (d) => {
+        const list = ledgerFor(d.id); // newest first
+        const bal = balanceOf(d.id);
+        const recent = list.slice(0, 8).slice().reverse();
+        const lines = recent.map((t) => "• " + prettyDate(t.date) + " " + (t.type === "order" ? "Purchase Rs " + plain(t.total) : "Payment Rs " + plain(t.amount)) + " (Bal Rs " + plain(t.bal) + ")");
+        const header = "*Royal Agro Services*\n" + d.name + (d.area ? " — " + d.area : "") + (d.rep ? "\nSalesperson: " + d.rep : "") + "\n";
+        const body = lines.length ? "\nRecent entries:\n" + lines.join("\n") + "\n" : "\nNo entries yet.\n";
+        const closingLine = "\n*Outstanding balance: Rs " + plain(Math.abs(bal)) + "*" + (bal > 0 ? " — please clear at your earliest convenience" : bal < 0 ? " advance held on account" : " — fully settled");
+        openShare(d.name + " — statement", header + body + closingLine + "\n\nRoyal Agro Ledger · " + prettyDate(today()));
+    };
     const backup = () => { downloadFile("Royal-Agro-Backup-" + today() + ".json", JSON.stringify(data, null, 2), "application/json"); flash("Backup downloaded"); };
     const onRestore = (e) => {
         const file = e.target.files && e.target.files[0];
@@ -790,13 +993,15 @@ function App() {
                     React.createElement("div", { className: "text-emerald-100 text-xs truncate" }, detailId && active ? ([active.area, active.rep && "Rep: " + active.rep, active.phone].filter(Boolean).join(" · ") || "Dealer account") : repView ? "Salesperson performance" : "Dealer Ledger · 35% off invoice")),
                 !detailId && !repView && React.createElement("button", { onClick: () => setShowSettings(true), className: "shrink-0 p-1.5 rounded-lg hover:bg-emerald-600" },
                     React.createElement(SettingsIcon, { size: 20 }))),
-            !detailId && !repView && (React.createElement("div", { className: "max-w-2xl mx-auto px-3 pb-2 flex gap-1 text-sm font-semibold overflow-x-auto" }, [{ k: "today", label: "Today", icon: TrendingUp }, { k: "glance", label: "Overview", icon: LayoutDashboard }, { k: "dealers", label: "Dealers", icon: Users }, { k: "stock", label: "Stock", icon: Boxes }].map((t) => {
+            !detailId && !repView && (React.createElement("div", { className: "max-w-2xl mx-auto px-3 pb-2 flex gap-1 text-sm font-semibold overflow-x-auto" }, [{ k: "today", label: "Today", icon: TrendingUp }, { k: "order", label: "Order", icon: ShoppingCart }, { k: "glance", label: "Overview", icon: LayoutDashboard }, { k: "dealers", label: "Dealers", icon: Users }, { k: "stock", label: "Stock", icon: Boxes }].map((t) => {
                 const Icon = t.icon;
                 return React.createElement("button", { key: t.k, onClick: () => setView(t.k), className: "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg " + (view === t.k ? "bg-white text-emerald-700" : "text-emerald-100 hover:bg-emerald-600") },
                     React.createElement(Icon, { size: 15 }),
                     t.label);
             })))),
-        msg && React.createElement("div", { className: "fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-sm px-4 py-2 rounded-full shadow-lg text-center max-w-xs" }, msg),
+        msg && (React.createElement("div", { className: "fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-sm pl-4 pr-2 py-2 rounded-full shadow-lg max-w-xs flex items-center gap-2" },
+            React.createElement("span", { className: "truncate" }, msg),
+            msgUndo && React.createElement("button", { onClick: () => { const fn = msgUndo; setMsg(""); setMsgUndo(null); fn(); }, className: "font-semibold text-emerald-400 px-2.5 py-1 rounded-full hover:bg-slate-700 shrink-0" }, "Undo"))),
         React.createElement("div", { className: "max-w-2xl mx-auto px-4 py-4" }, detailId && active ? (React.createElement(React.Fragment, null,
             React.createElement("div", { className: "bg-white rounded-2xl border border-slate-200 p-4 mb-3" },
                 React.createElement("div", { className: "flex items-start justify-between gap-3" },
@@ -815,9 +1020,22 @@ function App() {
                         React.createElement("button", { onClick: () => removeDealer(active.id), title: "Delete dealer", className: "p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50" },
                             React.createElement(Trash2, { size: 17 })))),
                 active.remarks && React.createElement("div", { className: "mt-2 text-xs text-slate-600 bg-slate-50 rounded-lg px-2.5 py-1.5" }, active.remarks),
-                React.createElement("button", { onClick: () => exportStatement(active), className: "mt-3 inline-flex items-center gap-1 text-sm text-emerald-700 font-semibold" },
-                    React.createElement(Download, { size: 15 }),
-                    " Export statement")),
+                active.followUp && (() => {
+                    const fu = followUpStatus(active);
+                    return (React.createElement("div", { className: "mt-2 text-xs rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-2 " + (fu.tone === "red" ? "bg-red-50 text-red-700" : fu.tone === "amber" ? "bg-amber-50 text-amber-700" : "bg-slate-50 text-slate-600") },
+                        React.createElement("span", { className: "inline-flex items-center gap-1" },
+                            React.createElement(Calendar, { size: 12 }),
+                            " ",
+                            fu.label),
+                        React.createElement("button", { onClick: () => persist((prev) => ({ ...prev, dealers: prev.dealers.map((d) => (d.id === active.id ? { ...d, followUp: "" } : d)) })), className: "font-semibold underline shrink-0" }, "Mark done")));
+                })(),
+                React.createElement("div", { className: "mt-3 flex items-center gap-3" },
+                    React.createElement("button", { onClick: () => exportStatement(active), className: "inline-flex items-center gap-1 text-sm text-emerald-700 font-semibold" },
+                        React.createElement(Download, { size: 15 }),
+                        " Export"),
+                    React.createElement("button", { onClick: () => shareStatement(active), className: "inline-flex items-center gap-1 text-sm text-emerald-700 font-semibold" },
+                        React.createElement(Share2, { size: 15 }),
+                        " Share"))),
             React.createElement("div", { className: "grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl mb-3 text-sm font-semibold" }, [{ k: "ledger", label: "Ledger", icon: Receipt }, { k: "order", label: "New order", icon: ShoppingCart }, { k: "payment", label: "Payment", icon: Wallet }].map((t) => {
                 const Icon = t.icon;
                 return React.createElement("button", { key: t.k, onClick: () => setTab(t.k), className: "flex items-center justify-center gap-1.5 py-2 rounded-lg " + (tab === t.k ? "bg-white shadow text-emerald-700" : "text-slate-500") },
@@ -992,7 +1210,123 @@ function App() {
                             "sales ",
                             plain(d.sales))),
                     React.createElement("span", { className: "text-sm font-semibold tabular-nums shrink-0 " + (d.bal > 0 ? "text-red-700" : d.bal < 0 ? "text-emerald-700" : "text-slate-500") }, d.bal === 0 ? "settled" : (d.bal > 0 ? "" : "adv ") + fmt(Math.abs(d.bal))))))))),
-            React.createElement("p", { className: "text-xs text-slate-400 px-1" }, "Profit is revenue minus cost on costed items and stays private to this screen."))) : view === "today" ? (React.createElement("div", { className: "space-y-3" },
+            React.createElement("p", { className: "text-xs text-slate-400 px-1" }, "Profit is revenue minus cost on costed items and stays private to this screen."))) : view === "order" ? (React.createElement("div", { className: "space-y-3" },
+            React.createElement("div", { className: "flex items-center justify-between" },
+                React.createElement("div", { className: "text-sm font-semibold text-slate-700 flex items-center gap-1" },
+                    React.createElement(ShoppingCart, { size: 15 }),
+                    " New order"),
+                React.createElement("span", { className: "text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5" },
+                    "#",
+                    nextOrderNo())),
+            React.createElement("div", { className: "bg-white rounded-xl border border-slate-200 p-3 space-y-2" },
+                React.createElement("label", { className: "text-xs text-slate-500" }, "Dealer"),
+                React.createElement("select", { value: ocDealerId, onChange: (e) => setOcDealerId(e.target.value), className: "w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400 bg-white" },
+                    React.createElement("option", { value: "" }, "Choose a dealer\u2026"),
+                    React.createElement("option", { value: "__new__" }, "\u2795 Add a new dealer"),
+                    data.dealers.slice().sort((a, b) => a.name.localeCompare(b.name)).map((d) => (React.createElement("option", { key: d.id, value: d.id },
+                        d.name,
+                        d.area ? " — " + d.area : "")))),
+                ocDealerId && ocDealerId !== "__new__" && (() => {
+                    const d = data.dealers.find((x) => x.id === ocDealerId);
+                    if (!d)
+                        return null;
+                    return (React.createElement("div", { className: "text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2 space-y-0.5" },
+                        d.area ? React.createElement("div", null,
+                            React.createElement("span", { className: "text-slate-400" }, "Area:"),
+                            " ",
+                            d.area) : null,
+                        d.rep ? React.createElement("div", null,
+                            React.createElement("span", { className: "text-slate-400" }, "Salesperson:"),
+                            " ",
+                            d.rep) : null,
+                        d.phone ? React.createElement("div", null,
+                            React.createElement("span", { className: "text-slate-400" }, "Phone:"),
+                            " ",
+                            d.phone) : null,
+                        React.createElement("div", null,
+                            React.createElement("span", { className: "text-slate-400" }, "Balance:"),
+                            " ",
+                            fmt(balanceOf(d.id)))));
+                })(),
+                ocDealerId === "__new__" && (React.createElement("div", { className: "space-y-2 pt-1" },
+                    React.createElement("input", { value: ocNew.name, onChange: (e) => setOcNew({ ...ocNew, name: e.target.value }), placeholder: "Dealer / shop name", className: "w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400" }),
+                    React.createElement("div", { className: "flex gap-2" },
+                        React.createElement("input", { value: ocNew.area, onChange: (e) => setOcNew({ ...ocNew, area: e.target.value }), list: "oc-areas", placeholder: "Area", className: "flex-1 px-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400" }),
+                        React.createElement("input", { value: ocNew.phone, onChange: (e) => setOcNew({ ...ocNew, phone: e.target.value }), inputMode: "tel", placeholder: "Phone", className: "flex-1 px-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400" })),
+                    React.createElement("input", { value: ocNew.rep, onChange: (e) => setOcNew({ ...ocNew, rep: e.target.value }), list: "oc-reps", placeholder: "Salesperson (choose existing or type new)", className: "w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400" }),
+                    React.createElement("datalist", { id: "oc-areas" }, areas.map((a) => React.createElement("option", { key: a, value: a }))),
+                    React.createElement("datalist", { id: "oc-reps" }, reps.map((r) => React.createElement("option", { key: r, value: r })))))),
+            cart.length > 0 && (React.createElement("div", { className: "bg-white rounded-xl border border-slate-200 p-3" },
+                React.createElement("div", { className: "text-sm font-semibold mb-2" }, "Products"),
+                React.createElement("div", { className: "space-y-3" }, cart.map((c) => {
+                    const cost = costWith(c.id);
+                    const below = cost != null && c.rate < cost;
+                    return (React.createElement("div", { key: c.id, className: "rounded-lg border p-2 " + (below ? "border-red-300 bg-red-50" : "border-slate-100") },
+                        React.createElement("div", { className: "flex items-start justify-between gap-2" },
+                            React.createElement("div", { className: "min-w-0" },
+                                React.createElement("div", { className: "text-sm font-medium truncate" }, pname(c.id)),
+                                React.createElement("div", { className: "text-xs text-slate-500 flex items-center gap-1.5 flex-wrap" },
+                                    c.pack,
+                                    " \u00B7 list ",
+                                    plain(c.dealer),
+                                    " ",
+                                    stockBadge(c.id))),
+                            React.createElement("button", { onClick: () => delCartItem(c.id), className: "text-slate-400 hover:text-red-600 shrink-0" },
+                                React.createElement(X, { size: 16 }))),
+                        React.createElement("div", { className: "flex items-center gap-2 mt-2" },
+                            React.createElement("div", { className: "flex items-center border border-slate-200 rounded-lg bg-white" },
+                                React.createElement("button", { onClick: () => setQty(c.id, c.qty - 1), className: "px-2 py-1.5 text-slate-600" },
+                                    React.createElement(Minus, { size: 14 })),
+                                React.createElement("input", { value: c.qty, onChange: (e) => setQty(c.id, parseInt(e.target.value.replace(/\D/g, "")) || 1), inputMode: "numeric", className: "w-9 text-center text-sm outline-none tabular-nums" }),
+                                React.createElement("button", { onClick: () => setQty(c.id, c.qty + 1), className: "px-2 py-1.5 text-slate-600" },
+                                    React.createElement(Plus, { size: 14 }))),
+                            React.createElement("div", { className: "flex items-center gap-1 flex-1" },
+                                React.createElement("span", { className: "text-xs text-slate-500" }, "Rate"),
+                                React.createElement("input", { value: c.rate, onChange: (e) => { var _a; return setRate(c.id, (_a = parseNum(e.target.value)) !== null && _a !== void 0 ? _a : 0); }, inputMode: "decimal", className: "w-20 px-2 py-1.5 rounded-lg border text-sm outline-none tabular-nums " + (below ? "border-red-400 text-red-700" : "border-slate-200 focus:border-emerald-400") }),
+                                c.rate !== c.dealer && React.createElement("button", { onClick: () => setRate(c.id, c.dealer), title: "Reset to list rate", className: "text-slate-400 hover:text-emerald-700" },
+                                    React.createElement(RotateCcw, { size: 14 }))),
+                            React.createElement("div", { className: "w-20 text-right text-sm font-semibold tabular-nums" }, fmt(c.rate * c.qty))),
+                        below && React.createElement("div", { className: "text-xs text-red-700 font-semibold mt-1 inline-flex items-center gap-1" },
+                            React.createElement(AlertTriangle, { size: 12 }),
+                            " Rate is below cost")));
+                })),
+                React.createElement("div", { className: "flex items-center justify-between border-t border-slate-100 mt-3 pt-3" },
+                    React.createElement("span", { className: "text-slate-600 text-sm" }, "Order total"),
+                    React.createElement("span", { className: "text-lg font-bold tabular-nums" }, fmt(cartTotal))))),
+            React.createElement("div", { className: "bg-white rounded-xl border border-slate-200 p-3" },
+                React.createElement("div", { className: "relative mb-2" },
+                    React.createElement(Search, { size: 16, className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" }),
+                    React.createElement("input", { value: pSearch, onChange: (e) => setPSearch(e.target.value), placeholder: "Add a product\u2026", className: "w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400" })),
+                React.createElement("div", { className: "flex gap-1.5 overflow-x-auto pb-2 mb-1" }, CATS.map((c) => React.createElement("button", { key: c, onClick: () => setPCat(c), className: "shrink-0 text-xs px-3 py-1.5 rounded-full border " + (pCat === c ? "bg-emerald-600 text-white border-emerald-600" : "bg-white border-slate-200 text-slate-600") }, c))),
+                React.createElement("div", { className: "max-h-80 overflow-y-auto -mx-1 divide-y divide-slate-100" },
+                    filteredProducts.map((p) => (React.createElement("button", { key: p.id, onClick: () => addToCart(p), className: "w-full text-left px-1 py-2.5 flex items-center justify-between gap-2 hover:bg-slate-50 rounded" },
+                        React.createElement("div", { className: "min-w-0" },
+                            React.createElement("div", { className: "text-sm font-medium truncate" }, pname(p.id)),
+                            React.createElement("div", { className: "text-xs text-slate-500 flex items-center gap-1.5" },
+                                p.pack,
+                                " ",
+                                stockBadge(p.id))),
+                        React.createElement("div", { className: "text-right shrink-0" },
+                            React.createElement("div", { className: "text-sm font-semibold text-emerald-700 tabular-nums" }, fmt(p.dealer)),
+                            React.createElement("div", { className: "text-xs text-emerald-600 inline-flex items-center gap-0.5" },
+                                React.createElement(Plus, { size: 11 }),
+                                " add"))))),
+                    filteredProducts.length === 0 && React.createElement("div", { className: "text-center text-slate-500 text-sm py-6" }, "No products match."))),
+            React.createElement("div", { className: "bg-white rounded-xl border border-slate-200 p-3 space-y-2" },
+                React.createElement("div", { className: "flex gap-2" },
+                    React.createElement("input", { type: "date", value: oDate, onChange: (e) => setODate(e.target.value), className: "flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400" }),
+                    React.createElement("input", { value: oNote, onChange: (e) => setONote(e.target.value), placeholder: "Bill # / note", className: "flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400" })),
+                React.createElement("div", { className: "flex gap-2" },
+                    React.createElement("input", { value: ocPayAmt, onChange: (e) => setOcPayAmt(e.target.value.replace(/[^\d.]/g, "")), inputMode: "decimal", placeholder: "Payment now (optional)", className: "flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400 tabular-nums" }),
+                    React.createElement("select", { value: ocPayMethod, onChange: (e) => setOcPayMethod(e.target.value), className: "px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400 bg-white" },
+                        React.createElement("option", null, "Cash"),
+                        React.createElement("option", null, "Bank Transfer"),
+                        React.createElement("option", null, "Cheque"),
+                        React.createElement("option", null, "Easypaisa/JazzCash"),
+                        React.createElement("option", null, "Other")))),
+            React.createElement("div", { className: "flex gap-2" },
+                React.createElement("button", { onClick: saveComposerOrder, className: "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-semibold text-sm" }, "Save order"),
+                React.createElement("button", { onClick: resetComposer, className: "px-4 py-2.5 rounded-lg text-sm border border-slate-200" }, "Clear")))) : view === "today" ? (React.createElement("div", { className: "space-y-3" },
             React.createElement("div", { className: "flex items-center justify-between gap-2" },
                 React.createElement("div", { className: "text-sm font-semibold text-slate-700" }, "Daily performance"),
                 React.createElement("input", { type: "date", value: todayDate, onChange: (e) => setTodayDate(e.target.value), className: "px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:border-emerald-400" })),
@@ -1014,16 +1348,26 @@ function App() {
                         React.createElement("div", { className: "bg-emerald-600 rounded-xl p-3 text-white" },
                             React.createElement("div", { className: "text-emerald-100 text-xs" }, "Profit"),
                             React.createElement("div", { className: "text-lg font-bold tabular-nums" }, plain(dProfit)))),
-                    React.createElement("div", { className: "text-xs text-slate-500" },
-                        dOrders.length,
-                        " order",
-                        dOrders.length !== 1 ? "s" : "",
-                        " \u00B7 ",
-                        dPays.length,
-                        " payment",
-                        dPays.length !== 1 ? "s" : "",
-                        " on ",
-                        prettyDate(todayDate)),
+                    React.createElement("div", { className: "flex items-center justify-between gap-2" },
+                        React.createElement("div", { className: "text-xs text-slate-500" },
+                            dOrders.length,
+                            " order",
+                            dOrders.length !== 1 ? "s" : "",
+                            " \u00B7 ",
+                            dPays.length,
+                            " payment",
+                            dPays.length !== 1 ? "s" : "",
+                            " on ",
+                            prettyDate(todayDate)),
+                        React.createElement("button", { onClick: () => openShare("Daily summary — " + prettyDate(todayDate), "*Royal Agro Services — Daily Summary*\n" + prettyDate(todayDate) + "\n\n" +
+                                "Sales: Rs " + plain(dSales) + " (" + dOrders.length + " order" + (dOrders.length !== 1 ? "s" : "") + ")\n" +
+                                "Collection: Rs " + plain(dColl) + " (" + dPays.length + " payment" + (dPays.length !== 1 ? "s" : "") + ")\n" +
+                                "Profit: Rs " + plain(dProfit) +
+                                (dOrders.length ? "\n\nSales:\n" + dOrders.map((t) => "• " + nm(t.dealerId) + " — Rs " + plain(t.total)).join("\n") : "") +
+                                (dPays.length ? "\n\nCollections:\n" + dPays.map((t) => "• " + nm(t.dealerId) + " — Rs " + plain(t.amount)).join("\n") : "") +
+                                "\n\n— Royal Agro Ledger"), className: "shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700" },
+                            React.createElement(Share2, { size: 13 }),
+                            " Share")),
                     React.createElement("div", { className: "bg-white rounded-xl border border-slate-200 p-3" },
                         React.createElement("div", { className: "text-sm font-semibold mb-2 flex items-center gap-1" },
                             React.createElement(ShoppingCart, { size: 14 }),
@@ -1079,13 +1423,28 @@ function App() {
                     React.createElement("div", { className: "text-lg font-bold tabular-nums " + (glance.belowCostOrders ? "text-red-700" : "text-slate-700") }, glance.belowCostOrders))),
             glance.debtors.length > 0 && (React.createElement("div", { className: "bg-white rounded-xl border border-slate-200 p-3" },
                 React.createElement("div", { className: "text-sm font-semibold mb-2" }, "Top outstanding dealers"),
-                React.createElement("div", { className: "space-y-1.5" }, glance.debtors.map((d) => (React.createElement("button", { key: d.id, onClick: () => openDealer(d.id), className: "w-full flex items-center justify-between gap-2 text-left" },
+                React.createElement("div", { className: "space-y-2" }, glance.debtors.map((d) => (React.createElement("button", { key: d.id, onClick: () => openDealer(d.id), className: "w-full flex items-center justify-between gap-2 text-left" },
+                    React.createElement("div", { className: "min-w-0" },
+                        React.createElement("div", { className: "text-sm truncate" },
+                            d.name,
+                            d.area ? React.createElement("span", { className: "text-slate-400 text-xs" },
+                                " \u00B7 ",
+                                d.area) : null),
+                        React.createElement("div", { className: "text-xs text-slate-400" }, d.lastPay ? daysBetween(d.lastPay) + "d since last payment" : "No payments yet")),
+                    React.createElement("span", { className: "text-sm font-semibold text-red-700 tabular-nums shrink-0" }, fmt(d.bal)))))))),
+            followUps.length > 0 && (React.createElement("div", { className: "bg-white rounded-xl border border-slate-200 p-3" },
+                React.createElement("div", { className: "text-sm font-semibold mb-2 flex items-center gap-1 text-amber-700" },
+                    React.createElement(Calendar, { size: 14 }),
+                    " Follow-ups due (",
+                    followUps.length,
+                    ")"),
+                React.createElement("div", { className: "space-y-1.5" }, followUps.map(({ d, diff }) => (React.createElement("button", { key: d.id, onClick: () => openDealer(d.id), className: "w-full flex items-center justify-between gap-2 text-left" },
                     React.createElement("span", { className: "text-sm truncate" },
                         d.name,
                         d.area ? React.createElement("span", { className: "text-slate-400 text-xs" },
                             " \u00B7 ",
                             d.area) : null),
-                    React.createElement("span", { className: "text-sm font-semibold text-red-700 tabular-nums shrink-0" }, fmt(d.bal)))))))),
+                    React.createElement("span", { className: "text-xs font-semibold shrink-0 " + (diff > 0 ? "text-red-600" : "text-amber-600") }, diff === 0 ? "Today" : diff + "d overdue"))))))),
             glance.byArea.length > 0 && (React.createElement("div", { className: "bg-white rounded-xl border border-slate-200 p-3" },
                 React.createElement("div", { className: "text-sm font-semibold mb-2 flex items-center gap-1" },
                     React.createElement(MapPin, { size: 14 }),
@@ -1150,7 +1509,8 @@ function App() {
             dealersSorted.length === 0 ? (React.createElement("div", { className: "text-center text-slate-500 text-sm py-12 border border-dashed border-slate-300 rounded-xl" }, data.dealers.length === 0 ? "No dealers yet. Add your first dealer to start a ledger." : "No dealers match the filters.")) : (React.createElement("div", { className: "space-y-2" }, dealersSorted.map((d) => (React.createElement("button", { key: d.id, onClick: () => openDealer(d.id), className: "w-full text-left bg-white rounded-xl border border-slate-200 p-3 flex items-center justify-between gap-3 hover:border-emerald-300 active:bg-slate-50" },
                 React.createElement("div", { className: "min-w-0" },
                     React.createElement("div", { className: "font-semibold truncate" }, d.name),
-                    React.createElement("div", { className: "text-slate-500 text-xs truncate" }, [d.area, d.rep && "Rep: " + d.rep, d.phone].filter(Boolean).join(" · ") || "—")),
+                    React.createElement("div", { className: "text-slate-500 text-xs truncate" }, [d.area, d.rep && "Rep: " + d.rep, d.phone].filter(Boolean).join(" · ") || "—"),
+                    d.followUp && (() => { const fu = followUpStatus(d); return React.createElement("div", { className: "text-xs font-semibold mt-0.5 " + (fu.tone === "red" ? "text-red-600" : fu.tone === "amber" ? "text-amber-600" : "text-slate-400") }, fu.label); })()),
                 React.createElement(BalancePill, { id: d.id })))))))) : (React.createElement(React.Fragment, null,
             React.createElement("div", { className: "bg-white rounded-xl border border-slate-200 p-3 mb-3" },
                 React.createElement("div", { className: "flex items-center justify-between gap-2" },
@@ -1178,15 +1538,21 @@ function App() {
                         showUnmatched ? React.createElement(ChevronUp, { size: 12 }) : React.createElement(ChevronDown, { size: 12 })),
                     showUnmatched && React.createElement("div", { className: "mt-1 text-xs text-slate-500 max-h-32 overflow-y-auto bg-slate-50 rounded-lg p-2 space-y-0.5" }, data.stockMeta.unmatched.map((u, i) => React.createElement("div", { key: i, className: "truncate" }, u)))))),
             lowStock.length > 0 && (React.createElement("div", { className: "bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3" },
-                React.createElement("div", { className: "text-sm font-semibold text-amber-800 mb-2 flex items-center gap-1" },
-                    React.createElement(AlertTriangle, { size: 14 }),
-                    " Low stock (",
-                    lowStock.length,
-                    ") \u00B7 at or below ",
-                    threshold),
+                React.createElement("div", { className: "flex items-center justify-between gap-2 mb-2" },
+                    React.createElement("div", { className: "text-sm font-semibold text-amber-800 flex items-center gap-1" },
+                        React.createElement(AlertTriangle, { size: 14 }),
+                        " Low stock (",
+                        lowStock.length,
+                        ") \u00B7 at or below ",
+                        threshold),
+                    React.createElement("button", { onClick: () => openShare("Reorder list", "*Royal Agro Services — Reorder List*\n" + prettyDate(today()) + "\n" + lowStock.length + " product(s) at or below " + threshold + ":\n\n" +
+                            lowStock.map((p) => "• " + pname(p.id) + " (" + p.pack + ") — " + plain(p.qty) + " left").join("\n") +
+                            "\n\n— Royal Agro Ledger"), className: "shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-amber-800" },
+                        React.createElement(Share2, { size: 12 }),
+                        " Share")),
                 React.createElement("div", { className: "space-y-1" }, lowStock.map((p) => (React.createElement("div", { key: p.id, className: "flex items-center justify-between gap-2 text-sm" },
                     React.createElement("span", { className: "text-slate-700 truncate" },
-                        p.name,
+                        pname(p.id),
                         " \u00B7 ",
                         p.pack),
                     React.createElement("span", { className: "font-semibold tabular-nums shrink-0 " + (p.qty <= 0 ? "text-red-700" : "text-amber-700") }, plain(p.qty)))))))),
@@ -1194,12 +1560,14 @@ function App() {
                 React.createElement("div", { className: "relative mb-2" },
                     React.createElement(Search, { size: 16, className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" }),
                     React.createElement("input", { value: stockSearch, onChange: (e) => setStockSearch(e.target.value), placeholder: "Search stock", className: "w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:border-emerald-400" })),
-                React.createElement("div", { className: "bg-white rounded-xl border border-slate-200 divide-y divide-slate-100" }, stockList.length === 0 ? React.createElement("div", { className: "text-center text-slate-500 text-sm py-6" }, "No matching stock.") :
-                    stockList.map((p) => (React.createElement("div", { key: p.id, className: "px-3 py-2.5 flex items-center justify-between gap-2" },
+                React.createElement("div", { className: "bg-white rounded-xl border border-slate-200 divide-y divide-slate-100" }, stockList.length === 0 ? React.createElement("div", { className: "text-center text-slate-500 text-sm py-6" }, "No products match.") :
+                    stockList.map((p) => (React.createElement("button", { key: p.id, onClick: () => setProdView(p.id), className: "w-full text-left px-3 py-2.5 flex items-center justify-between gap-2 hover:bg-slate-50" },
                         React.createElement("div", { className: "min-w-0" },
-                            React.createElement("div", { className: "text-sm truncate" }, p.name),
+                            React.createElement("div", { className: "text-sm truncate" }, pname(p.id)),
                             React.createElement("div", { className: "text-xs text-slate-500" }, p.pack)),
-                        React.createElement("span", { className: "text-sm font-semibold tabular-nums shrink-0 " + (p.qty <= 0 ? "text-red-700" : p.qty <= threshold ? "text-amber-700" : "text-slate-700") }, plain(p.qty))))))))))),
+                        React.createElement("span", { className: "flex items-center gap-1.5 shrink-0" },
+                            React.createElement("span", { className: "text-sm font-semibold tabular-nums " + (p.qty == null ? "text-slate-300" : p.qty <= 0 ? "text-red-700" : p.qty <= threshold ? "text-amber-700" : "text-slate-700") }, p.qty == null ? "—" : plain(p.qty)),
+                            React.createElement(Pencil, { size: 13, className: "text-slate-300" }))))))))))),
         React.createElement("div", { className: "h-8" }),
         formOpen && (React.createElement("div", { className: "fixed inset-0 z-40 flex items-end sm:items-center justify-center" },
             React.createElement("div", { className: "absolute inset-0 bg-black opacity-40", onClick: () => setFormOpen(false) }),
@@ -1230,6 +1598,10 @@ function App() {
                     React.createElement("div", null,
                         React.createElement("label", { className: "text-xs text-slate-500" }, "Remarks"),
                         React.createElement("textarea", { value: f.remarks, onChange: (e) => setF({ ...f, remarks: e.target.value }), rows: 2, placeholder: "Any notes about this dealer", className: "w-full mt-1 px-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400 resize-none" })),
+                    React.createElement("div", null,
+                        React.createElement("label", { className: "text-xs text-slate-500" }, "Next follow-up (optional)"),
+                        React.createElement("input", { type: "date", value: f.followUp, onChange: (e) => setF({ ...f, followUp: e.target.value }), className: "w-full mt-1 px-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400" }),
+                        React.createElement("p", { className: "text-xs text-slate-400 mt-1" }, "Shows this dealer under Follow-ups on Overview once due.")),
                     React.createElement("div", { className: "flex gap-2 pt-1" },
                         React.createElement("button", { onClick: saveForm, disabled: !f.name.trim(), className: "flex-1 bg-emerald-600 disabled:bg-slate-300 text-white py-2.5 rounded-lg text-sm font-semibold" }, editId ? "Save changes" : "Add dealer"),
                         React.createElement("button", { onClick: () => setFormOpen(false), className: "px-4 py-2.5 rounded-lg text-sm border border-slate-200" }, "Cancel")))))),
@@ -1352,9 +1724,92 @@ function App() {
                         React.createElement("input", { value: payEdit.note, onChange: (e) => setPayEdit({ ...payEdit, note: e.target.value }), className: "w-full mt-1 px-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400" })),
                     React.createElement("div", { className: "flex gap-2 pt-1" },
                         React.createElement("button", { onClick: savePayEdit, disabled: !parseFloat(payEdit.amount), className: "flex-1 bg-emerald-600 disabled:bg-slate-300 text-white py-2.5 rounded-lg text-sm font-semibold" }, "Save changes"),
-                        React.createElement("button", { onClick: () => setPayEdit(null), className: "px-4 py-2.5 rounded-lg text-sm border border-slate-200" }, "Cancel"))))))));
+                        React.createElement("button", { onClick: () => setPayEdit(null), className: "px-4 py-2.5 rounded-lg text-sm border border-slate-200" }, "Cancel")))))),
+        shareModal && (React.createElement("div", { className: "fixed inset-0 z-50 flex items-end sm:items-center justify-center" },
+            React.createElement("div", { className: "absolute inset-0 bg-black opacity-40", onClick: () => setShareModal(null) }),
+            React.createElement("div", { className: "relative bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-screen overflow-y-auto" },
+                React.createElement("div", { className: "flex items-center justify-between mb-3" },
+                    React.createElement("div", { className: "font-semibold flex items-center gap-1.5 truncate" },
+                        React.createElement(Share2, { size: 17, className: "shrink-0" }),
+                        " ",
+                        shareModal.title),
+                    React.createElement("button", { onClick: () => setShareModal(null), className: "p-1 text-slate-400 hover:text-slate-700 shrink-0" },
+                        React.createElement(X, { size: 18 }))),
+                React.createElement("textarea", { readOnly: true, value: shareModal.text, rows: 10, onClick: (e) => e.target.select(), className: "w-full px-3 py-2 rounded-lg border border-slate-200 text-xs outline-none resize-none bg-slate-50 font-mono" }),
+                React.createElement("div", { className: "flex gap-2 mt-3" },
+                    React.createElement("button", { onClick: doNativeShare, className: "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-1.5" },
+                        React.createElement(Share2, { size: 15 }),
+                        " Share"),
+                    React.createElement("button", { onClick: doCopyShare, className: "px-4 py-2.5 rounded-lg text-sm border border-slate-200 font-semibold" }, "Copy")),
+                React.createElement("p", { className: "text-xs text-slate-400 mt-2" }, "Share opens WhatsApp or any app on your phone. Copy pastes it yourself.")))),
+        prodView && CAT_BY_ID[prodView] && (() => {
+            const p = CAT_BY_ID[prodView];
+            const cwp = costWith(prodView);
+            const margin = cwp != null && p.dealer ? Math.round((p.dealer - cwp) / p.dealer * 100) : null;
+            const c = data.costing[prodView] || [null, 0];
+            const qty = data.stock[prodView];
+            return (React.createElement("div", { className: "fixed inset-0 z-40 flex flex-col bg-slate-50" },
+                React.createElement("div", { className: "bg-emerald-700 text-white sticky top-0 shadow" },
+                    React.createElement("div", { className: "max-w-2xl mx-auto px-4 py-3 flex items-center gap-3" },
+                        React.createElement("button", { onClick: () => setProdView(null), className: "-ml-1 p-1.5 rounded-lg hover:bg-emerald-600" },
+                            React.createElement(ArrowLeft, { size: 20 })),
+                        React.createElement("div", { className: "flex-1 min-w-0" },
+                            React.createElement("div", { className: "font-bold leading-tight truncate" }, pname(prodView)),
+                            React.createElement("div", { className: "text-emerald-100 text-xs" },
+                                p.cat,
+                                " \u00B7 ",
+                                p.pack)))),
+                React.createElement("div", { className: "flex-1 overflow-y-auto" },
+                    React.createElement("div", { className: "max-w-2xl mx-auto px-4 py-4 space-y-3" },
+                        React.createElement("div", { className: "bg-white rounded-xl border border-slate-200 p-3" },
+                            React.createElement("label", { className: "text-xs text-slate-500" }, "Display name"),
+                            React.createElement("div", { className: "flex items-center gap-2 mt-1" },
+                                React.createElement("input", { value: pname(prodView), onChange: (e) => setName(prodView, e.target.value), className: "flex-1 px-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400" }),
+                                data.names && data.names[prodView] && React.createElement("button", { onClick: () => setName(prodView, ""), title: "Reset to catalog name", className: "text-slate-400 hover:text-emerald-700" },
+                                    React.createElement(RotateCcw, { size: 16 }))),
+                            React.createElement("div", { className: "text-xs text-slate-400 mt-1" },
+                                "Catalog name: ",
+                                p.name)),
+                        React.createElement("div", { className: "bg-white rounded-xl border border-slate-200 p-3" },
+                            React.createElement("label", { className: "text-xs text-slate-500" },
+                                "Stock on hand (",
+                                p.pack,
+                                ")"),
+                            React.createElement("input", { value: qty == null ? "" : qty, onChange: (e) => setStockVal(prodView, e.target.value.replace(/[^\d]/g, "")), inputMode: "numeric", placeholder: "not set", className: "w-full mt-1 px-3 py-2.5 rounded-lg border border-slate-200 text-lg font-semibold outline-none focus:border-emerald-400 tabular-nums" }),
+                            React.createElement("div", { className: "text-xs text-slate-400 mt-1" },
+                                "Low-stock alert triggers at or below ",
+                                threshold,
+                                ".")),
+                        React.createElement("div", { className: "bg-white rounded-xl border border-slate-200 p-3 space-y-3" },
+                            React.createElement("div", { className: "text-sm font-semibold flex items-center gap-1" },
+                                React.createElement(Calculator, { size: 15 }),
+                                " Costing ",
+                                React.createElement("span", { className: "text-xs font-normal text-slate-400" }, "(private)")),
+                            React.createElement("div", { className: "flex gap-2" },
+                                React.createElement("div", { className: "flex-1" },
+                                    React.createElement("label", { className: "text-xs text-slate-500" }, "Cost / Ltr\u00B7Kg"),
+                                    React.createElement("input", { value: c[0] == null ? "" : c[0], onChange: (e) => setGroupCpu(prodView, e.target.value), inputMode: "decimal", placeholder: "\u2014", className: "w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400 tabular-nums" })),
+                                React.createElement("div", { className: "flex-1" },
+                                    React.createElement("label", { className: "text-xs text-slate-500" }, "Packing cost"),
+                                    React.createElement("input", { value: c[1] == null ? "" : c[1], onChange: (e) => setCostField(prodView, 1, e.target.value), inputMode: "decimal", placeholder: "0", className: "w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400 tabular-nums" }))),
+                            React.createElement("div", { className: "grid grid-cols-3 gap-2 text-center" },
+                                React.createElement("div", { className: "bg-slate-50 rounded-lg py-2" },
+                                    React.createElement("div", { className: "text-xs text-slate-400" }, "Cost"),
+                                    React.createElement("div", { className: "text-sm font-bold tabular-nums" }, cwp == null ? "—" : plain(cwp))),
+                                React.createElement("div", { className: "bg-slate-50 rounded-lg py-2" },
+                                    React.createElement("div", { className: "text-xs text-slate-400" }, "Sells"),
+                                    React.createElement("div", { className: "text-sm font-bold tabular-nums" }, plain(p.dealer))),
+                                React.createElement("div", { className: "bg-slate-50 rounded-lg py-2" },
+                                    React.createElement("div", { className: "text-xs text-slate-400" }, "Margin"),
+                                    React.createElement("div", { className: "text-sm font-bold tabular-nums " + (margin == null ? "text-slate-400" : margin < 0 ? "text-red-700" : margin < 12 ? "text-amber-700" : "text-emerald-700") }, margin == null ? "—" : margin + "%"))),
+                            React.createElement("div", { className: "text-xs text-slate-400" },
+                                "Cost / Ltr\u00B7Kg is shared across all pack sizes of this product. Invoice rate before discount: ",
+                                plain(p.rate),
+                                "."))),
+                    React.createElement("div", { className: "h-8" }))));
+        })()));
 }
-ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
 
 } catch (e) { if (window.__appError) window.__appError(e && (e.stack || e.message) || e); }
 
