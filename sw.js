@@ -1,4 +1,4 @@
-const CACHE = "royal-agro-v5";
+const CACHE = "royal-agro-v6";
 const ASSETS = [
   "./", "./index.html", "./manifest.webmanifest",
   "https://cdn.tailwindcss.com",
